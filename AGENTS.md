@@ -137,6 +137,95 @@ All hooks managed by [prek](https://prek.j178.dev/) (installed via `npm install`
 | **commit-msg** | commitlint (Conventional Commits) |
 | **pre-push** | TypeScript type check (tsc --noEmit for plugin, JS, CLI) |
 
+## Deploy Workflow (MANDATORY)
+
+All changes to this fork follow a 4-branch promotion model with a 5-step gate. This process is **mandatory** — no change ships without it.
+
+### Branch model
+
+`dev` → `test` → `live` → `main`
+
+| Branch | Role |
+|--------|------|
+| `dev`  | All changes land here first |
+| `test` | Validation stage |
+| `live` | Staging / pre-production |
+| `main` | Stable / shipped |
+
+### Versioning
+
+- **SemVer** `MAJOR.MINOR.PATCH` stored in the `VERSION` file at repo root (single source of truth).
+- Pre-1.0 (`0.x`) applies the same discipline as post-1.0.
+- Bump rules:
+  - `MAJOR` — breaking or incompatible change
+  - `MINOR` — new feature, backwards-compatible
+  - `PATCH` — bug fix, documentation, or refactor
+- **Per-stage tags** on the same commit as it promotes:
+  `v<X.Y.Z>-dev` → `v<X.Y.Z>-test` → `v<X.Y.Z>-live` → `v<X.Y.Z>` (canonical at main)
+
+### Release notes (mandatory)
+
+Every version bump requires a release note at:
+
+```
+docs/release-notes/YYYYMMDDHHMM-Release-v<VERSION>-<short-slug>.md
+```
+
+Must include the six sections defined in `docs/release-notes/TEMPLATE.md`:
+
+1. Background
+2. Reason
+3. Changes
+4. Smoke test results
+5. Regression test results
+6. Rollback
+
+### 5-step gate
+
+| Step | Action | Branch | Git operation |
+|------|--------|--------|---------------|
+| 1 | Edit files, bump VERSION, draft release note, run smoke + regression | dev (working tree) | **no commit** — stop for user choice |
+| 2 | Commit to dev, tag `v<X.Y.Z>-dev`, push | dev | commit + tag + push |
+| 3 | Merge `dev` → `test` (`--ff-only`), tag `v<X.Y.Z>-test`, push | test | merge + tag + push |
+| 4 | Merge `test` → `live` (`--ff-only`), tag `v<X.Y.Z>-live`, push | live | merge + tag + push |
+| 5 | Merge `live` → `main` (`--ff-only`), tag `v<X.Y.Z>`, push | main | merge + tag + push |
+
+### Step 1 behavior (mandatory stop)
+
+After Step 1 runs, the agent:
+
+1. Shows a summary of what changed
+2. Shows exact verification commands the user can run
+3. Shows the release note draft
+4. **Stops** and asks the user to pick target step 2–5 (or `abort`)
+
+If the user iterates (more edits, corrections, additions) before choosing Step 2+, everything stays under the **same VERSION** and the **same release note** (updated in place). Version locks in only when Step 2 commits.
+
+The agent runs every step up to and including the chosen target in one turn, then stops. It does **not** advance past the chosen target without fresh instruction.
+
+### Commit gate + enforcement
+
+`.git/hooks/pre-commit` enforces (in order):
+
+1. `.commit-approved` marker must exist at repo root (user runs `touch .commit-approved` per commit to opt in). Marker is consumed on successful commit.
+2. If any staged file lies outside `docs/release-notes/`, `VERSION` must also be staged.
+3. A file matching `docs/release-notes/*-Release-v<VERSION>-*.md` must exist on disk for the staged VERSION.
+
+Do not bypass with `--no-verify` without explicit permission.
+
+### Exemption
+
+Commits that **only** modify files under `docs/release-notes/**` may omit the VERSION bump (so typos in already-shipped notes can be fixed, or retroactive notes added). All other changes — including other documentation — require a VERSION bump and a matching release note.
+
+### Stage failure / rollback between stages
+
+If validation fails at a stage (e.g., a smoke test fails on `test`), **do not** promote further. Either:
+
+- Fix forward on `dev` with a new PATCH bump and re-run the gate
+- Delete the affected stage tag and rollback: `git tag -d v<X.Y.Z>-<stage> && git push origin :refs/tags/v<X.Y.Z>-<stage>` then `git reset --hard <PREV>` on the affected branch
+
+The canonical `v<X.Y.Z>` tag exists only after Step 5 completes on `main`.
+
 ## Working with This Repo
 
 ### Before Making Changes
