@@ -160,15 +160,16 @@ All changes to this fork follow a 4-branch promotion model with a 5-step gate. T
   - `MAJOR` — breaking or incompatible change
   - `MINOR` — new feature, backwards-compatible
   - `PATCH` — bug fix, documentation, or refactor
-- **Per-stage tags** on the same commit as it promotes:
-  `v<X.Y.Z>-dev` → `v<X.Y.Z>-test` → `v<X.Y.Z>-live` → `v<X.Y.Z>` (canonical at main)
+- **Per-stage tags** on the same commit as it promotes (prefix `AGTF-v` namespaces our fork's tags away from upstream NVIDIA/NemoClaw's `v*`):
+  `AGTF-v<X.Y.Z>-dev` → `AGTF-v<X.Y.Z>-test` → `AGTF-v<X.Y.Z>-live` → `AGTF-v<X.Y.Z>` (canonical at main)
+- **Historical exception:** v0.0.1 (2026-04-21) used the unnamespaced `v0.0.1*` tags before upstream collision was addressed. From v0.0.2 onward, all tags use the `AGTF-v*` prefix.
 
 ### Release notes (mandatory)
 
 Every version bump requires a release note at:
 
 ```
-docs/release-notes/YYYYMMDDHHMM-Release-v<VERSION>-<short-slug>.md
+docs/release-notes/YYYYMMDDHHMM-Release-AGTF-v<VERSION>-<short-slug>.md
 ```
 
 Must include the six sections defined in `docs/release-notes/TEMPLATE.md`:
@@ -185,10 +186,10 @@ Must include the six sections defined in `docs/release-notes/TEMPLATE.md`:
 | Step | Action | Branch | Git operation |
 |------|--------|--------|---------------|
 | 1 | Edit files, bump VERSION, draft release note, run smoke + regression | dev (working tree) | **no commit** — stop for user choice |
-| 2 | Commit to dev, tag `v<X.Y.Z>-dev`, push | dev | commit + tag + push |
-| 3 | Merge `dev` → `test` (`--ff-only`), tag `v<X.Y.Z>-test`, push | test | merge + tag + push |
-| 4 | Merge `test` → `live` (`--ff-only`), tag `v<X.Y.Z>-live`, push | live | merge + tag + push |
-| 5 | Merge `live` → `main` (`--ff-only`), tag `v<X.Y.Z>`, push | main | merge + tag + push |
+| 2 | Commit to dev, tag `AGTF-v<X.Y.Z>-dev`, push | dev | commit + tag + push |
+| 3 | Merge `dev` → `test` (`--ff-only`), tag `AGTF-v<X.Y.Z>-test`, push | test | merge + tag + push |
+| 4 | Merge `test` → `live` (`--ff-only`), tag `AGTF-v<X.Y.Z>-live`, push | live | merge + tag + push |
+| 5 | Merge `live` → `main` (`--ff-only`), tag `AGTF-v<X.Y.Z>`, push | main | merge + tag + push |
 
 ### Step 1 behavior (mandatory stop)
 
@@ -209,7 +210,7 @@ The agent runs every step up to and including the chosen target in one turn, the
 
 1. `.commit-approved` marker must exist at repo root (user runs `touch .commit-approved` per commit to opt in). Marker is consumed on successful commit.
 2. If any staged file lies outside `docs/release-notes/`, `VERSION` must also be staged.
-3. A file matching `docs/release-notes/*-Release-v<VERSION>-*.md` must exist on disk for the staged VERSION.
+3. A file matching `docs/release-notes/*-Release-AGTF-v<VERSION>-*.md` must exist on disk for the staged VERSION.
 
 Do not bypass with `--no-verify` without explicit permission.
 
@@ -222,9 +223,9 @@ Commits that **only** modify files under `docs/release-notes/**` may omit the VE
 If validation fails at a stage (e.g., a smoke test fails on `test`), **do not** promote further. Either:
 
 - Fix forward on `dev` with a new PATCH bump and re-run the gate
-- Delete the affected stage tag and rollback: `git tag -d v<X.Y.Z>-<stage> && git push origin :refs/tags/v<X.Y.Z>-<stage>` then `git reset --hard <PREV>` on the affected branch
+- Delete the affected stage tag and rollback: `git tag -d AGTF-v<X.Y.Z>-<stage> && git push origin :refs/tags/AGTF-v<X.Y.Z>-<stage>` then `git reset --hard <PREV>` on the affected branch
 
-The canonical `v<X.Y.Z>` tag exists only after Step 5 completes on `main`.
+The canonical `AGTF-v<X.Y.Z>` tag exists only after Step 5 completes on `main`.
 
 ## Working with This Repo
 

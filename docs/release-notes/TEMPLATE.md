@@ -1,9 +1,11 @@
-# v<VERSION> — <short title> (<YYYY-MM-DD HH:MM>)
+# AGTF-v<VERSION> — <short title> (<YYYY-MM-DD HH:MM>)
 
 **Version:** <VERSION>
-**Stage tags:** v<VERSION>-dev, v<VERSION>-test, v<VERSION>-live, v<VERSION>
+**Stage tags:** AGTF-v<VERSION>-dev, AGTF-v<VERSION>-test, AGTF-v<VERSION>-live, AGTF-v<VERSION>
 **Branch flow:** dev → test → live → main
 **Author:** <github-handle>
+
+**Filename pattern:** `YYYYMMDDHHMM-Release-AGTF-v<VERSION>-<slug>.md`
 
 ## Background
 
@@ -42,7 +44,7 @@ Exact commands to fully revert this release.
 
 ```bash
 # 1. Delete stage tags (local + origin)
-for t in v<VERSION> v<VERSION>-live v<VERSION>-test v<VERSION>-dev; do
+for t in AGTF-v<VERSION> AGTF-v<VERSION>-live AGTF-v<VERSION>-test AGTF-v<VERSION>-dev; do
   git tag -d "$t" 2>/dev/null || true
   git push origin ":refs/tags/$t" 2>/dev/null || true
 done
