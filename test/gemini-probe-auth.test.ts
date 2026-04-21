@@ -8,39 +8,32 @@ import path from "node:path";
 
 import { getProbeAuthMode } from "../dist/lib/onboard";
 
-describe("Gemini dual-auth credential fix (issue #1960)", () => {
-  describe("getProbeAuthMode", () => {
-    it("returns 'query-param' for gemini-api provider", () => {
-      expect(getProbeAuthMode("gemini-api")).toBe("query-param");
-    });
-
-    it("returns undefined for non-Gemini providers", () => {
-      expect(getProbeAuthMode("openai-api")).toBeUndefined();
-      expect(getProbeAuthMode("nvidia-prod")).toBeUndefined();
-      expect(getProbeAuthMode("anthropic-prod")).toBeUndefined();
-      expect(getProbeAuthMode("compatible-endpoint")).toBeUndefined();
-      expect(getProbeAuthMode("")).toBeUndefined();
-    });
+// Fork override of upstream #1960: upstream sent ?key= query-param for
+// gemini-api to avoid dual-auth rejection, but the fork's Gemini target
+// (OpenAI-compat endpoint /v1beta/openai/) requires Bearer. getProbeAuthMode
+// is now a no-op — always returns undefined — so the default Bearer flow
+// handles every provider including gemini-api.
+describe("getProbeAuthMode (fork override of #1960)", () => {
+  it("returns undefined for gemini-api (was 'query-param' upstream)", () => {
+    expect(getProbeAuthMode("gemini-api")).toBeUndefined();
   });
 
-  describe("compiled probe uses ?key= for Gemini instead of Bearer header", () => {
-    const onboardSrc = fs.readFileSync(
-      path.join(import.meta.dirname, "..", "dist", "lib", "onboard.js"),
-      "utf-8",
-    );
+  it("returns undefined for every other provider", () => {
+    expect(getProbeAuthMode("openai-api")).toBeUndefined();
+    expect(getProbeAuthMode("nvidia-prod")).toBeUndefined();
+    expect(getProbeAuthMode("anthropic-prod")).toBeUndefined();
+    expect(getProbeAuthMode("compatible-endpoint")).toBeUndefined();
+    expect(getProbeAuthMode("")).toBeUndefined();
+  });
+});
 
-    it("contains query-param auth mode logic in probeOpenAiLikeEndpoint", () => {
-      // The probe function must check for authMode === "query-param"
-      expect(onboardSrc).toMatch(/authMode.*===.*"query-param"/);
-    });
+describe("compiled onboard.js no longer pairs gemini-api with query-param auth", () => {
+  const onboardSrc = fs.readFileSync(
+    path.join(import.meta.dirname, "..", "dist", "lib", "onboard.js"),
+    "utf-8",
+  );
 
-    it("appends ?key= to the URL with encodeURIComponent when using query-param auth", () => {
-      // The compiled code must URL-encode the key when building ?key= URLs
-      expect(onboardSrc).toMatch(/\?key=.*encodeURIComponent/);
-    });
-
-    it("getProbeAuthMode returns query-param for gemini-api", () => {
-      expect(onboardSrc).toMatch(/gemini-api.*\?.*query-param|query-param.*gemini-api/);
-    });
+  it("does not contain a gemini-api → query-param mapping", () => {
+    expect(onboardSrc).not.toMatch(/gemini-api.*query-param|query-param.*gemini-api/);
   });
 });
